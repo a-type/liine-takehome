@@ -1,0 +1,24 @@
+{
+	"name": "liine-takehome",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"type": "module",
+	"scripts": {
+		"test": "vitest"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"@hono/node-server": "^1.14.1",
+		"@hono/zod-validator": "^0.5.0",
+		"hono": "^4.7.9",
+		"zod": "^3.24.4"
+	},
+	"devDependencies": {
+		"@types/node": "^22.15.18",
+		"typescript": "^5.8.3",
+		"vitest": "^3.1.3"
+	}
+}
