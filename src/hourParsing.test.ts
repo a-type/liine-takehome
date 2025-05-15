@@ -58,6 +58,32 @@ describe('parsing restaurant hours', () => {
 				},
 			],
 		],
+		// special case - midnight wrap
+		[
+			'Sat-Sun 11 pm - 3 am / M, W, F 7 pm - 1 am',
+			[
+				{
+					days: [6, 0],
+					startTimeMinutes: 23 * 60,
+					endTimeMinutes: 24 * 60,
+				},
+				{
+					days: [0, 1],
+					startTimeMinutes: 0,
+					endTimeMinutes: 3 * 60,
+				},
+				{
+					days: [1, 3, 5],
+					startTimeMinutes: 19 * 60,
+					endTimeMinutes: 24 * 60,
+				},
+				{
+					days: [2, 4, 6],
+					startTimeMinutes: 0,
+					endTimeMinutes: 1 * 60,
+				},
+			],
+		],
 	])('parses %s', (input, expected) => {
 		expect(parseHours(input)).toEqual(expected);
 	});
@@ -81,6 +107,9 @@ describe('extracting time', () => {
 		['1 am', 1 * 60, ''],
 		['2:30 pm - 3:30 pm', 14 * 60 + 30, ' - 3:30 pm'],
 		['10 pm', 22 * 60, ''],
+		['12 am', 0, ''],
+		['12:30 am', 30, ''],
+		['12 pm', 12 * 60, ''],
 	])('extracts %s into %d and %s', (input, expected, rest) => {
 		const [time, rest2] = extractTime(input);
 		expect(time).toEqual(expected);
@@ -164,27 +193,49 @@ describe('parsing an hour range', () => {
 	it.each([
 		[
 			'Mon-Sun 11 am - 10 pm',
-			{
-				days: [1, 2, 3, 4, 5, 6, 0],
-				startTimeMinutes: 11 * 60,
-				endTimeMinutes: 22 * 60,
-			},
+			[
+				{
+					days: [1, 2, 3, 4, 5, 6, 0],
+					startTimeMinutes: 11 * 60,
+					endTimeMinutes: 22 * 60,
+				},
+			],
 		],
 		[
 			'Sun-Mon, Wed 5 pm - 10 pm',
-			{
-				days: [0, 1, 3],
-				startTimeMinutes: 17 * 60,
-				endTimeMinutes: 22 * 60,
-			},
+			[
+				{
+					days: [0, 1, 3],
+					startTimeMinutes: 17 * 60,
+					endTimeMinutes: 22 * 60,
+				},
+			],
 		],
 		[
 			'Mon, Wed-Sun 11 am - 10 pm',
-			{
-				days: [1, 3, 4, 5, 6, 0],
-				startTimeMinutes: 11 * 60,
-				endTimeMinutes: 22 * 60,
-			},
+			[
+				{
+					days: [1, 3, 4, 5, 6, 0],
+					startTimeMinutes: 11 * 60,
+					endTimeMinutes: 22 * 60,
+				},
+			],
+		],
+		// special case: time range wraps around midnight
+		[
+			'Mon-Sun 11 pm - 3 am',
+			[
+				{
+					days: [1, 2, 3, 4, 5, 6, 0],
+					startTimeMinutes: 23 * 60,
+					endTimeMinutes: 24 * 60,
+				},
+				{
+					days: [2, 3, 4, 5, 6, 0, 1],
+					startTimeMinutes: 0,
+					endTimeMinutes: 3 * 60,
+				},
+			],
 		],
 	])('parses %s into %s', (input, expected) => {
 		expect(parseHourRange(input)).toEqual(expected);

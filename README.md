@@ -137,6 +137,12 @@ I had initially assumed parsing this simple CSV would be a matter of splitting o
 
 Similar to "just use SQLite" I can "just use a library" here, particularly on a real project where there is a good chance the requirements will change over time and a brittle solution will fail. This time, since that's a very easy thing to drop in, I'm going to go ahead and do that.
 
+#### Time range edge cases
+
+Parsing time gets interesting. Particularly "12:00" since it defies a naive "pm means add 12 hours" logic. I opted to just add special cases for hour 12 when parsing times.
+
+It's also possible for a time range to overlap days. For example, a bar that's open 11PM - 3AM or something like that. I've opted to detect this at the time range level: if an end time is smaller than the start, assume it extends into the next day and produce separate time ranges for each day across the split. These split ranges eventually 'dissolve' when the lookup table is created, so their separation isn't a problem.
+
 ### Dockerfile
 
 Finally, as suggested, I've dropped a basic version of my usual Node Dockerfile in. It's lightly optimized but not particularly sophisticated. I bootstrap package dependencies first (`npm ci` using lockfile), then copy over source, which makes consecutive builds faster as long as deps don't change. I'm also running things as `node` and using `dumb-init` to paper over any process leaks.

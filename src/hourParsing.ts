@@ -9,7 +9,7 @@ export type HourRange = {
  */
 export function parseHours(hours: string): HourRange[] {
 	const dayGroups = splitDayGroups(hours);
-	return dayGroups.map((group) => parseHourRange(group));
+	return dayGroups.flatMap((group) => parseHourRange(group));
 }
 
 /**
@@ -24,15 +24,35 @@ function splitDayGroups(source: string): string[] {
 /**
  * Parses a single hour range string into a range representation.
  */
-export function parseHourRange(source: string): HourRange {
+export function parseHourRange(source: string): HourRange[] {
 	const [dayRanges, hours] = extractDayRanges(source);
 	const [hourRange] = extractTimeRange(hours);
 	const allDays = dayRanges.flatMap(expandDayRange);
-	return {
-		days: allDays,
-		startTimeMinutes: hourRange[0],
-		endTimeMinutes: hourRange[1],
-	};
+
+	// special case: if the end of the time range is less than the start,
+	// this range stretches across two days. return two ranges.
+	if (hourRange[1] < hourRange[0]) {
+		const firstRange = {
+			days: allDays,
+			startTimeMinutes: hourRange[0],
+			endTimeMinutes: 24 * 60,
+		};
+		const secondRange = {
+			// shift days forward by one
+			days: allDays.map((day) => (day + 1) % 7),
+			startTimeMinutes: 0,
+			endTimeMinutes: hourRange[1],
+		};
+		return [firstRange, secondRange];
+	}
+
+	return [
+		{
+			days: allDays,
+			startTimeMinutes: hourRange[0],
+			endTimeMinutes: hourRange[1],
+		},
+	];
 }
 
 /**
@@ -134,8 +154,16 @@ export function extractTime(source: string): [number, string] {
 	// account for am/pm
 	rest = consumeLeadingWhitespace(rest);
 	if (rest.startsWith('am')) {
+		// edge case - 12 am
+		if (hours === 12) {
+			return [minutes, rest.slice(2)];
+		}
 		return [time, rest.slice(2)];
 	} else if (rest.startsWith('pm')) {
+		// edge case - 12 pm
+		if (hours === 12) {
+			return [time, rest.slice(2)];
+		}
 		return [time + 12 * 60, rest.slice(2)];
 	}
 
@@ -191,6 +219,10 @@ const dayAbbreviations = new Map<string, number>(
 		return abbreviations;
 	}),
 );
+// add additional non-ambiguous single letter abbreviations
+dayAbbreviations.set('m', 1);
+dayAbbreviations.set('w', 3);
+dayAbbreviations.set('f', 5);
 export function dayAbbreviationToDayOfWeek(abbrev: string): number {
 	const normalized = abbrev.toLowerCase();
 	if (dayAbbreviations.has(normalized)) {
