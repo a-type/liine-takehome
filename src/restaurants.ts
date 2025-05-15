@@ -1,3 +1,4 @@
+import { writeFileSync } from 'node:fs';
 import { parseHours } from './hourParsing.ts';
 import { loadRestaurants } from './loadData.ts';
 import {
@@ -12,6 +13,12 @@ const restaurantLookupTable = createRestaurantLookupTable(
 		name: row.name,
 		hours: parseHours(row.hours),
 	})),
+);
+
+writeFileSync(
+	'./data/lookupTable.json',
+	JSON.stringify(restaurantLookupTable, null, 2),
+	'utf-8',
 );
 
 // out of curiosity, how many total lookup keys do we have?

@@ -121,6 +121,38 @@ describe('finding restaurants for a given time', () => {
 				},
 			],
 		},
+		// overlap midnight
+		{
+			name: 'Brodeto',
+			hours: [
+				{
+					days: [1],
+					startTimeMinutes: 19 * 60,
+					endTimeMinutes: 24 * 60,
+				},
+				{
+					days: [2],
+					startTimeMinutes: 0,
+					endTimeMinutes: 1 * 60,
+				},
+			],
+		},
+		// end exactly at midnight
+		{
+			name: 'Stanbury',
+			hours: [
+				{
+					days: [0],
+					startTimeMinutes: 22 * 60,
+					endTimeMinutes: 24 * 60,
+				},
+				{
+					days: [1],
+					startTimeMinutes: 0,
+					endTimeMinutes: 0,
+				},
+			],
+		},
 	]);
 	it('returns correct results matching multiple restaurants', () => {
 		const result = lookupRestaurantsByTime(
@@ -142,7 +174,7 @@ describe('finding restaurants for a given time', () => {
 		const result = lookupRestaurantsByTime(
 			table,
 			// Mon 00:00
-			new Date('2025-05-12T00:00:00Z'),
+			new Date('2025-05-16T00:00:00Z'),
 		);
 		expect(result).toEqual([]);
 	});
@@ -152,9 +184,9 @@ describe('finding restaurants for a given time', () => {
 			// Mon 22:00:05 (Figulina closes at 22:00)
 			new Date('2025-05-12T22:00:05Z'),
 		);
-		expect(result).toEqual([]);
+		expect(result).toEqual(['Brodeto']);
 	});
-	it('handles boundary times at midnight', () => {
+	it('handles boundary times at 11:59', () => {
 		const result = lookupRestaurantsByTime(
 			table,
 			// Sat 11:59:30 (Standard closes at 11:59)
@@ -168,5 +200,42 @@ describe('finding restaurants for a given time', () => {
 			new Date('2025-05-17T23:59:00Z'),
 		);
 		expect(result2).toEqual(['Standard']);
+	});
+	it('handles boundary times at midnight', () => {
+		const result = lookupRestaurantsByTime(
+			table,
+			// Tue 00:00:00 (Brodeto is open through midnight)
+			new Date('2025-05-13T00:00:00Z'),
+		);
+		expect(result).toEqual(['Brodeto']);
+	});
+	it('handles ranges that end at midnight', () => {
+		const result = lookupRestaurantsByTime(
+			table,
+			// Mon 00:00:00 (Stanbury is open up to midnight)
+			new Date('2025-05-12T00:00:00Z'),
+		);
+		expect(result).toEqual(['Stanbury']);
+		// also check the prior minute
+		const result2 = lookupRestaurantsByTime(
+			table,
+			// Sun 23:59:00
+			new Date('2025-05-11T23:59:00Z'),
+		);
+		expect(result2).toEqual(['Stanbury']);
+		// and the next minute
+		const result3 = lookupRestaurantsByTime(
+			table,
+			// Mon 00:01:00
+			new Date('2025-05-12T00:01:00Z'),
+		);
+		expect(result3).toEqual([]);
+		// and a few seconds after midnight
+		const result4 = lookupRestaurantsByTime(
+			table,
+			// Mon 00:00:05
+			new Date('2025-05-12T00:00:05Z'),
+		);
+		expect(result4).toEqual([]);
 	});
 });

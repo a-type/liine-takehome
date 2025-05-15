@@ -34,20 +34,28 @@ export function lookupRestaurantsByTime(
 ): string[] {
 	const day = dateTime.getDay();
 	const timeInMinutes = dateTime.getHours() * 60 + dateTime.getMinutes();
+
+	// if seconds are 0, we don't need to worry about overlapping minutes.
+	// it's easier to return early here if that's the case rather than
+	// pollute the rest of the logic with extra edge cases.
+	if (dateTime.getSeconds() === 0) {
+		// deduplicate here just in case.
+		return Array.from(new Set(lookupTable[day]?.[timeInMinutes] ?? []));
+	}
+
 	// the time may fall between minutes, so we intersect the given minute with the next
 	// one for the final result. for example, if the query time is 11:00:05,
 	// we want to include restaurants that are open from 11:00 and 11:01 only,
 	// not ones that close at 11:00 or open at 11:01.
 	// We only do this if there are seconds.
-	const nextMinute =
-		dateTime.getSeconds() > 0 ? (timeInMinutes + 1) % (24 * 60) : timeInMinutes;
+	const nextMinute = (timeInMinutes + 1) % (24 * 60);
 	// edge case: if the next minute is midnight, we need to check the next day
 	const nextDay = nextMinute === 0 ? (day + 1) % 7 : day;
 	// since we're overlapping two minutes, we must deduplicate the results.
 	// this also deduplicates the individual minute lists, which were not
 	// deduplicated when loading up the table, so that's convenient.
-	const startResult = new Set(lookupTable[day][timeInMinutes] ?? []);
-	const endResult = new Set(lookupTable[nextDay][nextMinute] ?? []);
+	const startResult = new Set(lookupTable[day]?.[timeInMinutes] ?? []);
+	const endResult = new Set(lookupTable[nextDay]?.[nextMinute] ?? []);
 	return Array.from(setIntersection(startResult, endResult));
 }
 
