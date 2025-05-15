@@ -41,7 +41,7 @@ Most of the 'business logic' is loosely covered by unit tests, which I wrote in 
 - May 14 | 30min | Initial server and logic scaffolding
 - May 14 | 1.5h | Hour range parsing and tests, planning lookup logic
 - May 15 | 1h | Implement lookup, more tests, manual testing
-- May 15 | 30m | Wrap up, containerize, CSV parsing bugfixes
+- May 15 | 1h | Wrap up, containerize, CSV parsing bugfixes
 
 ## Process
 
