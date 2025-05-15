@@ -68,7 +68,7 @@ After setting up some basic scaffolding I'll dig into the hard problems.
 Ok, the first thing I'm seeing on inspecting the CSV is the inconsistency of the format! Let's see if I can take an inventory of how things are represented.
 
 - Time: `h am/pm`, `h:mm am/pm`, `h am/pm`
-- Day: Consistent 3-letter shorthand, first letter capitalized
+- Day: Consistent 3-letter shorthand, first letter capitalized (edit: actually "Tues" is also used!)
 - Day ranges: Consecutive ranges are `Day-Day`, followed by time. Non-consecutive groupings of days with same times use `Day, Day` (or combine with ranges).
 - Alternate times: If a restaurant has multiple time windows on different days or ranges of days, they're separated by `/`.
 
@@ -76,7 +76,7 @@ My list goes from fine to coarse granularity, so I'd probably reverse that for p
 
 One thing conspicuously absent here is multiple discontinuous time ranges on the same day, which is common for restaurants (lunch and dinner hours), but since it's not represented in the examples I suppose I'll exclude the possibility. There's no way to confidently speculate what the syntax would be. But if this were my product I'd have addressed that in design phase 😉
 
-I'll probably also loosen up the casing requirements, even though casing is consistent in examples, cause why not.
+I'll probably also loosen up the casing requirements, even though casing is consistent in examples, cause why not. (edit: I ended up generating a full set of unambiguous abbreviations for each day, down to 2 letters. Felt easier than worrying about manually specifying possibilities).
 
 #### Output format
 
@@ -98,7 +98,7 @@ The sheer number of entries in this table is pretty big. 154191 total name entri
 
 So! Am I happy with that? For a dataset this small, it's kind of moot. I'm leaning hard toward the time side of the time vs memory performance axis, for sure. I've certainly gained a bit more intuition on when this kind of hash partitioning is a good fit.
 
-How I might think about improving the approach... obviously a good way to reduce memory usage is to start offloading to disk. Instead of loading an in-memory table, I could write separate files for each day of the week, then load those files into memory as needed for each query.
+How I might think about improving the approach... I could wind back some of the partitioning and only partition on day, then scan for matching time ranges from those results. That increases query time but should dramatically reduce memory usage. To keep queries fastish, obviously a good way to reduce memory usage is to start offloading to disk. Instead of loading an in-memory table, I could write separate files for each day of the week, then load those files into memory as needed for each query.
 
 Of course, what I'm doing at that point is basically inventing a database. So what I'd _actually_ do, if this weren't an exercise (and, honestly, what I would have done from the start) is push this data into SQLite and leverage how it's already solved most of these problems.
 
@@ -127,7 +127,7 @@ AND start_time_minutes <= 660
 AND end_time_minutes >= 660
 ```
 
-All that seems pretty good to me. Not sure the range scan will be as time efficient as the constant time lookup table I have, but it's probably worth it to keep memory under control if this was going to scale to thousands of restaurants.
+All that seems pretty good to me. Doubt the range scan will be as time efficient as the constant time lookup table I have, but it's probably worth it to keep memory under control if this was going to scale to thousands of restaurants.
 
 The reason I wasn't keen on doing this for this exercise (and still probably won't) is mostly the boilerplate of setting up the database, migrations, and seeding the data, avoiding writing duplicate entries upon successive startups, etc, etc. This is all pedestrian and worth doing in a real project, but seemed overkill; hopefully this writeup makes it clear I'm aware of the option and could implement it.
 
@@ -135,11 +135,11 @@ The reason I wasn't keen on doing this for this exercise (and still probably won
 
 I had initially assumed parsing this simple CSV would be a matter of splitting on commas (it's right in the name!) but of course CSV parsing is kind of like time, in that it's hubris to think it'll be simple and easy. It's been a minute since I tried to parse a CSV but it's all coming back to me.
 
-Similar to "just use SQLite" I would probably "just use a library" here, particularly on a real project where there is a good chance the requirements will change over time and a brittle solution will fail. This time, since that's a very easy thing to drop in, I'm going to go ahead and do that.
+Similar to "just use SQLite" I can "just use a library" here, particularly on a real project where there is a good chance the requirements will change over time and a brittle solution will fail. This time, since that's a very easy thing to drop in, I'm going to go ahead and do that.
 
 ### Dockerfile
 
-Finally, as suggested, I've dropped a basic version of my usual Node Dockerfile in. It's lightly optimized but not particularly sophisticated. I bootstrap package dependencies first (`npm ci` using lockfile), then copy over source and properly install/link them, which makes consecutive builds faster as long as deps don't change. I'm also running things as `node` and using `dumb-init` to paper over any process leaks.
+Finally, as suggested, I've dropped a basic version of my usual Node Dockerfile in. It's lightly optimized but not particularly sophisticated. I bootstrap package dependencies first (`npm ci` using lockfile), then copy over source, which makes consecutive builds faster as long as deps don't change. I'm also running things as `node` and using `dumb-init` to paper over any process leaks.
 
 After containerizing I realized the CSV data source should probably be mountable, so you can try different datasets without rebuilding the image. So I've moved it to `./data`. To run the container with a dataset, pass `--mount type=bind,src="$(pwd)"/data,target=/usr/src/app/data` to `docker run` (maybe adjust the source path for your environment if needed).
 
@@ -148,3 +148,4 @@ After containerizing I realized the CSV data source should probably be mountable
 If you're not familiar with the Node ecosystem here's a run down of some choices I made relevant to it:
 
 - Using Typescript with Node's new experimental type-stripping, rather than transpilation. This makes Node just run Typescript files as if they were Javascript, ignoring type annotations.
+- I think that's about it, everything else is pretty standard Node.
