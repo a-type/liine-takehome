@@ -1,40 +1,42 @@
-import * as fs from 'node:fs/promises';
-import * as path from 'node:path';
-import { z } from 'zod';
+import { parseHours } from './hourParsing.ts';
+import { loadRestaurants } from './loadData.ts';
+import {
+	createRestaurantLookupTable,
+	lookupRestaurantsByTime,
+} from './lookup.ts';
 
-// I know the prompt says to assume the CSV is valid, but with TS and Zod, it's just
-// as easy to validate (which produces correct typing of output data) as it is to
-// handwrite a type and manually cast it, and I like having types.
-export const restaurantRowSchema = z.object({
-	name: z.string(),
-	hours: z.string(),
-});
+// Startup: load the CSV file into a lookup table for use later
+const rawRestaurants = await loadRestaurants();
+const restaurantLookupTable = createRestaurantLookupTable(
+	rawRestaurants.map((row) => ({
+		name: row.name,
+		hours: parseHours(row.hours),
+	})),
+);
 
-// loads restaurants from 'restaurants.csv' in the current working directory
-async function loadRestaurants() {
-	const csv = await fs.readFile(
-		path.resolve(process.cwd(), 'restaurants.csv'),
+// out of curiosity, how many total lookup keys do we have?
+console.log(
+	`Loaded ${rawRestaurants.length} restaurants with ${
+		restaurantLookupTable.flat().length
+	} total lookup keys, ${
+		restaurantLookupTable.flat().flat().length
+	} total name entries, ~${Buffer.byteLength(
+		JSON.stringify(restaurantLookupTable),
 		'utf-8',
-	);
-	const rows = csv.split('\n').slice(1); // Skip header row
-	return rows.map((row) => {
-		const [name, hours] = row.split(',');
-		return restaurantRowSchema.parse({ name, hours });
-	});
-}
+	)} bytes.`,
+);
 
-// TODO: pipeline from CSV to whatever datastructure I want for
-// time lookups
-
-export async function getRestaurantsByTime(
-	time: string,
-): Promise<z.infer<typeof restaurantRowSchema>[]> {
+/**
+ * Looks up the restaurants that are open at a given time.
+ * @param time - any valid datetime string that can be parsed by the Date constructor
+ * @returns a list of restaurant names that are open at the given time
+ */
+export function getRestaurantsByTime(time: string): string[] {
 	const asDate = new Date(time);
 	// while this is validated at the API level, no reason to not check it here
 	if (isNaN(asDate.getTime())) {
 		throw new Error('Invalid date');
 	}
 
-	// TODO: implement this
-	return [];
+	return lookupRestaurantsByTime(restaurantLookupTable, asDate);
 }

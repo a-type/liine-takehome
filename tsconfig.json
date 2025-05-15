@@ -1,8 +1,11 @@
 {
 	"include": ["src/**/*.ts", "src/**/*.tsx"],
 	"compilerOptions": {
-		"moduleResolution": "NodeNext",
-		"module": "NodeNext",
+		"moduleResolution": "Bundler",
+		"module": "ESNext",
+		"target": "ESNext",
+		"allowImportingTsExtensions": true,
+		"noEmit": true,
 		"strict": true
 	}
 }

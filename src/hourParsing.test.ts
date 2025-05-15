@@ -9,7 +9,7 @@ import {
 	extractTimeRange,
 	parseHourRange,
 	parseHours,
-} from './hourParsing.js';
+} from './hourParsing.ts';
 
 describe('parsing restaurant hours', () => {
 	it.each([

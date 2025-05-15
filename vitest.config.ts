@@ -4,5 +4,6 @@ export default defineConfig({
 	test: {
 		mockReset: true,
 		environment: 'node',
+		globalSetup: './vitest.setup.ts',
 	},
 });

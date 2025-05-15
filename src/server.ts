@@ -2,10 +2,17 @@ import { serve } from '@hono/node-server';
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { getRestaurantsByTime } from './restaurants.js';
+import { getRestaurantsByTime } from './restaurants.ts';
+
+// to avoid confusion or mistakes, run in UTC time
+if (new Date().getTimezoneOffset() !== 0) {
+	console.error(
+		'Warning: this server is designed to run in UTC time. Please set your timezone to UTC.',
+	);
+}
 
 const app = new Hono().get(
-	'/restaurants',
+	'/',
 	// middleware that validates query params via a Zod schema
 	zValidator(
 		'query',
@@ -16,7 +23,7 @@ const app = new Hono().get(
 	async (ctx) => {
 		// ctx.req.valid() will return the validated data or throw if validation fails
 		const { time } = ctx.req.valid('query');
-		const openRestaurants = await getRestaurantsByTime(time);
+		const openRestaurants = getRestaurantsByTime(time);
 		return ctx.json(openRestaurants);
 	},
 );
