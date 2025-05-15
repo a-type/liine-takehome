@@ -5,7 +5,7 @@ import { z } from 'zod';
 // I know the prompt says to assume the CSV is valid, but with TS and Zod, it's just
 // as easy to validate (which produces correct typing of output data) as it is to
 // handwrite a type and manually cast it, and I like having types.
-const restaurantRowSchema = z.object({
+export const restaurantRowSchema = z.object({
 	name: z.string(),
 	hours: z.string(),
 });
@@ -25,13 +25,6 @@ async function loadRestaurants() {
 
 // TODO: pipeline from CSV to whatever datastructure I want for
 // time lookups
-
-// parsing the hours into a format for lookup
-// exported for testing
-// TODO: decide what format to use for hours
-export function parseHours(hours: string): unknown {
-	return [];
-}
 
 export async function getRestaurantsByTime(
 	time: string,
