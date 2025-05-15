@@ -2,14 +2,46 @@
 
 ## Overview
 
-TODO: summarize approach, process, and outcomes
+Okay! This was more interesting of a problem than I first thought. My notes below journal my process of working through it, plus some tradeoffs and things I might do a little differently.
+
+### Run with Docker
+
+The server is containerized, run `docker build . -t <whatever>` to build (you knew this). That will run the server with the default dataset. Out of curiosity I experimented with how to mount different datasets without rebuilding the image, see [notes on how to do that with `--mount`](#dockerfile). Just felt like learning how to do that since I had the opportunity.
+
+### Run with Node
+
+Install Node 22.6+.
+
+Run `npm i` to install deps, and `npm start` to run the server.
+
+### Using the app
+
+Visit http://localhost:3000?time=2025-05-15T22:00Z once running to test it out. Replace the query param with any valid ISO datetime string.
+
+Invalid or missing ISO datetimes are rejected with a validation error.
+
+### Code organization
+
+Everything's in `/src`, entrypoint is `server.ts`. This module loads the Hono web server and sets up the only route.
+
+`restaurants.ts` is the high-level module for bootstrapping the dataset and querying. It calls lower-level functions from `loadData.ts` and `lookup.ts` to accomplish this.
+
+`loadData.ts` handles the CSV file parsing and also parses the hour strings into formal data representations of discrete hour ranges.
+
+`lookup.ts` creates the lookup table (see notes below) and exposes a function to query it from a `Date`.
+
+`hourParsing.ts` implements the parser for the hour strings.
+
+### Tests
+
+Most of the 'business logic' is loosely covered by unit tests, which I wrote in advance to verify functionality as I went and root out edge cases. If you install Node, you can run these tests (after running `npm i`) with `npm test`.
 
 ## Work log
 
 - May 14 | 30min | Initial server and logic scaffolding
 - May 14 | 1.5h | Hour range parsing and tests, planning lookup logic
 - May 15 | 1h | Implement lookup, more tests, manual testing
-- May 15 | 30m | Wrap up, CSV parsing bugfixes
+- May 15 | 30m | Wrap up, containerize, CSV parsing bugfixes
 
 ## Process
 
@@ -104,3 +136,15 @@ The reason I wasn't keen on doing this for this exercise (and still probably won
 I had initially assumed parsing this simple CSV would be a matter of splitting on commas (it's right in the name!) but of course CSV parsing is kind of like time, in that it's hubris to think it'll be simple and easy. It's been a minute since I tried to parse a CSV but it's all coming back to me.
 
 Similar to "just use SQLite" I would probably "just use a library" here, particularly on a real project where there is a good chance the requirements will change over time and a brittle solution will fail. This time, since that's a very easy thing to drop in, I'm going to go ahead and do that.
+
+### Dockerfile
+
+Finally, as suggested, I've dropped a basic version of my usual Node Dockerfile in. It's lightly optimized but not particularly sophisticated. I bootstrap package dependencies first (`npm ci` using lockfile), then copy over source and properly install/link them, which makes consecutive builds faster as long as deps don't change. I'm also running things as `node` and using `dumb-init` to paper over any process leaks.
+
+After containerizing I realized the CSV data source should probably be mountable, so you can try different datasets without rebuilding the image. So I've moved it to `./data`. To run the container with a dataset, pass `--mount type=bind,src="$(pwd)"/data,target=/usr/src/app/data` to `docker run` (maybe adjust the source path for your environment if needed).
+
+## Final notes / Node.js quirks
+
+If you're not familiar with the Node ecosystem here's a run down of some choices I made relevant to it:
+
+- Using Typescript with Node's new experimental type-stripping, rather than transpilation. This makes Node just run Typescript files as if they were Javascript, ignoring type annotations.

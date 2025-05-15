@@ -14,7 +14,7 @@ export const restaurantRowSchema = z.object({
 // loads restaurants from 'restaurants.csv' in the current working directory
 export async function loadRestaurants() {
 	const csv = fs.createReadStream(
-		path.resolve(process.cwd(), 'restaurants.csv'),
+		path.resolve(process.cwd(), 'data/restaurants.csv'),
 		'utf-8',
 	);
 	const results: z.infer<typeof restaurantRowSchema>[] = [];

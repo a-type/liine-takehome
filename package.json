@@ -4,9 +4,15 @@
 	"description": "",
 	"main": "index.js",
 	"type": "module",
+	"engines": {
+		"node": ">=22.6.0"
+	},
+	"packageManager": "npm@10.9.2",
 	"scripts": {
 		"test": "vitest",
-		"start": "node --experimental-strip-types ./src/server.ts"
+		"start": "node --experimental-strip-types ./src/server.ts",
+		"build": "docker build -t liine-takehome .",
+		"docker:run": "docker run -it -p 3000:3000 liine-takehome"
 	},
 	"keywords": [],
 	"author": "",
