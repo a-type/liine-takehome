@@ -1,5 +1,3 @@
-import { addDays, addHours, addMinutes } from 'date-fns';
-
 export type HourRange = {
 	days: number[];
 	startTimeMinutes: number;
@@ -170,19 +168,6 @@ function consumeLeadingWhitespace(source: string): string {
 		i++;
 	}
 	return source.slice(i);
-}
-
-// picking an arbitrary sunday to form the 'canonical' week
-const CANONICAL_SUNDAY = new Date('1970-01-04T00:00:00Z');
-export function getCanonicalWeekEpoch(
-	dayOfWeek: number,
-	hours: number,
-	minutes: number,
-) {
-	return addMinutes(
-		addHours(addDays(CANONICAL_SUNDAY, dayOfWeek), hours),
-		minutes,
-	);
 }
 
 // constructs a map of all possible non-ambiguous abbreviations for
